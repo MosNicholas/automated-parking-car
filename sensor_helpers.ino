@@ -1,21 +1,24 @@
 
-const int NUM_READINGS = 100;
+const int NUM_READINGS = 50;
 const int NUM_MILLISECONDS = 5000;
 
-int sensorMin = 1023, sensorMax = 0;
+int sensorMin, sensorMax;
 
-int defineSensorMinMax(int sensorPin) {
+int calibrateSensor(int sensorPin) {
   // to be called in the setup function, 
   //finds the min and max values of the sensor readings
-  int startTime = millis();
+  int _sensorMin = 1023, _sensorMax = 0;
+  unsigned long startTime = millis();
   while (millis() - startTime < NUM_MILLISECONDS) {
     int sensorValue = analogRead(sensorPin);
-    if (sensorValue > sensorMax) {
-      sensorMax = sensorValue;
-    } else if (sensorValue < sensorMin) {
-      sensorMin = sensorValue;
+    if (sensorValue > _sensorMax) {
+      _sensorMax = sensorValue;
+    } else if (sensorValue < _sensorMin) {
+      _sensorMin = sensorValue;
     }
   }
+  sensorMin = _sensorMin;
+  sensorMax = _sensorMax;
   Serial.print("min: ");
   Serial.println(sensorMin);
   Serial.print("max: ");

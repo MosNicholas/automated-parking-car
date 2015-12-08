@@ -1,6 +1,7 @@
 
 const int MIN_DEPTH = 150;
-const int MIN_TIME_DELTA = 1500;
+const int MIN_TIME_DELTA = 1000;
+const int MAX_PARKING_SEARCH_TIME = 5000;
 
 /*
  Since we are mapping sensor values to 0-1023, we can use an absolute value
@@ -36,8 +37,9 @@ int findParkingSpot(int sideSensorPin, int frontSensorPin) {
   int pPreviousSensorValue = getAvgSensorValue(sideSensorPin);
   int previousSensorValue = getAvgSensorValue(sideSensorPin);
   int startTime, currentTime;
+  unsigned long functionCallTime = millis();
   
-  while (state != 4) {
+  while (state != 4 && millis() - functionCallTime < MAX_PARKING_SEARCH_TIME) {
     
     int currentSensorValue = getAvgSensorValue(sideSensorPin);
     Serial.print("state: ");
@@ -69,19 +71,15 @@ int findParkingSpot(int sideSensorPin, int frontSensorPin) {
     delay(30);
   }
   
-  if (state == 4) {
-    return 1;
-  } else {
-    return 0;
-  }
+  return (state == 4);
 }
 
 void park(int sideSensorPin, int frontSensorPin) {
-  setMovement(170, 0, 1);
+  setMovement(130, 0, 1);
   int parkingSpot = findParkingSpot(sideSensorPin, frontSensorPin);
+  setMovement(0, 0, 0);
   if (parkingSpot == 1) {
     // we found a parking spot, we need to start parking
-    setMovement(0, 0, 0);
 //    setMovement(100, -1, -1); // start reversing backwards
     // do some magic
     // park.

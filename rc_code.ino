@@ -28,12 +28,13 @@ void setup() {
   pinMode(frontSensorPin, INPUT);
   pinMode(rearSensorPin, INPUT);
   pinMode(sideSensorPin, INPUT);
-  pinMode(redLED, OUTPUT);
+  pinMode(LED, OUTPUT);
   pinMode(rearMotorPin1, OUTPUT);
   pinMode(rearMotorPin2, OUTPUT);
   pinMode(frontMotorPin1, OUTPUT);
   pinMode(frontMotorPin2, OUTPUT);
   
+  digitalWrite(LED, LOW);
   digitalWrite(rearMotorPin1, LOW);
   digitalWrite(rearMotorPin2, LOW);
   digitalWrite(frontMotorPin1, LOW);
@@ -80,14 +81,18 @@ void loop() {
       setMovement(0, 0, 0);
     } else if (input == UP_MOTOR) {
       motorStrength = motorStrength + 50;
+      Serial.print("new motor strength: ");
+      Serial.println(motorStrength);
     } else if (input == DOWN_MOTOR) {
       motorStrength = motorStrength - 50;
+      Serial.print("new motor strength: ");
+      Serial.println(motorStrength);
     } else if (input == READ_SENSOR) {
       Serial.print("Average value: ");
       Serial.println(getAvgSensorValue(sideSensorPin));
     } else if (input == CALIBRATE) {
       digitalWrite(LED, HIGH);
-      defineSensorMinMax(sideSensorPin);
+      calibrateSensor(sideSensorPin);
       digitalWrite(LED, LOW);
     } else {}
   }
