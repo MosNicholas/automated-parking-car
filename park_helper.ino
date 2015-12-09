@@ -42,10 +42,7 @@ int findParkingSpot(int sideSensorPin, int frontSensorPin) {
   while (state != 4 && millis() - functionCallTime < MAX_PARKING_SEARCH_TIME) {
     
     int currentSensorValue = getAvgSensorValue(sideSensorPin);
-    Serial.print("state: ");
-    Serial.println(state);
-    Serial.print("Sensor value: ");
-    Serial.println(currentSensorValue);
+    
     if (state > 0) { currentTime = millis(); }
     
     if (state == 0 && currentSensorValue - previousSensorValue >= MIN_DEPTH) {

@@ -31,7 +31,7 @@ int scaledSensorValue(int sensorPin) {
 }
 
 int getAvgSensorValue(int sensorPin) {
-  int avgSensorValue = 0;
+  unsigned long avgSensorValue = 0;
   for (int i = 1; i <= NUM_READINGS; i++) {
     avgSensorValue = (avgSensorValue * (i-1) + scaledSensorValue(sensorPin))/i;
   }
