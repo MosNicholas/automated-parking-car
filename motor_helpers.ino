@@ -31,22 +31,22 @@ void straight(int front1, int front2) {
   analogWrite(front2, 0);
 }
 
-void move(int rear1, int rear2, int front1, int front2, int powerLevel, int leftRight, int frontBack) {
+void move(int rear1, int rear2, int front1, int front2, int powerLevel, int leftRight, int forwardReverse) {
   // left = -1, straight = 0, right = 1
   // reverse = -1, stop = 0, forward = 1
-  if (leftRight == -1) {
+  if (leftRight == GO_LEFT) {
     left(front1, front2, powerLevel);
-  } else if (leftRight == 0) {
+  } else if (leftRight == GO_STRAIGHT) {
     straight(front1, front2);
-  } else {
+  } else if (leftRight == GO_RIGHT) {
     right(front1, front2, powerLevel); 
-  }
+  } else {}
   
-  if (frontBack == -1) {
+  if (forwardReverse == GO_REVERSE) {
     reverse(rear1, rear2, powerLevel);
-  } else if (frontBack == 0) {
+  } else if (forwardReverse == GO_STOP) {
     halt(rear1, rear2, front1, front2);
-  } else {
+  } else if (forwardReverse == GO_FORWARD) {
     forward(rear1, rear2, powerLevel);
-  }
+  } else {}
 }

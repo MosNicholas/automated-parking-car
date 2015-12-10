@@ -19,10 +19,8 @@ int calibrateSensor(int sensorPin) {
   }
   sensorMin = _sensorMin;
   sensorMax = _sensorMax;
-  Serial.print("min: ");
-  Serial.println(sensorMin);
-  Serial.print("max: ");
-  Serial.println(sensorMax);
+
+  if (DEBUG) { debugger(MIN_MAX_SENSOR_DEBUG, 2, sensorMin, sensorMax); }
 }
 
 int scaledSensorValue(int sensorPin) {
