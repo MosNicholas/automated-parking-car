@@ -4,7 +4,7 @@ const int NUM_READINGS = 50;
 const int NUM_MILLISECONDS = 5000;
 
 // private/internal variables used to calibrate the sensor
-int sensorMin = 1, sensorMax = 28;
+int sensorMin = 1, sensorMax = 25;
 
 /* 
   Public method to calibrate the sensors.

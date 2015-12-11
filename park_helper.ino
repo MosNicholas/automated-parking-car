@@ -5,10 +5,10 @@ const int MIN_TIME_DELTA = 1000;
 const int MAX_PARKING_SEARCH_TIME = 2500;
 
 // Constants for backing up:
-const int HALF_PARKING_SPOT_SENSOR_VALUE = MIN_DEPTH_DELTA;
-const int CLOSE_TO_WALL_SENSOR_VALUE = 90;
-const int MAX_REVERSING_TIME = 1600;
-const int MAX_FORWARD_TIME_1 = 1400;
+const int HALF_PARKING_SPOT_SENSOR_VALUE = 150;
+const int CLOSE_TO_WALL_SENSOR_VALUE = 150;
+const int MAX_REVERSING_TIME = 1000;
+const int MAX_FORWARD_TIME_1 = 900;
 
 /*
  Since we are mapping sensor values to 0-1023, we can use an absolute value
@@ -51,7 +51,7 @@ int findParkingSpot(int sideSensorPin, int frontSensorPin) {
   int frontSensorValue = getAvgSensorValue(frontSensorPin);
   int startTime, currentTime;
   
-  setMovement(0, 130, 0, 1);
+  setMovement(130, 0, 0, 1);
   unsigned long functionCallTime = millis();
   
   while (state != 4 && millis() - functionCallTime < MAX_PARKING_SEARCH_TIME && frontSensorValue > CLOSE_TO_WALL_SENSOR_VALUE) {
@@ -113,27 +113,25 @@ void park(int sideSensorPin, int frontSensorPin, int rearSensorPin) {
     
     if (state == 0) {
       // First step: reverse back, left
-      setMovement(MAX_MOTORS_STRENGTH, MAX_MOTORS_STRENGTH, GO_LEFT, GO_REVERSE);
+      setMovement(180, MAX_MOTORS_STRENGTH, GO_LEFT, GO_REVERSE);
       state = 1;
     } else if (state == 1 && (rearSensorReading < HALF_PARKING_SPOT_SENSOR_VALUE || millis() - time > MAX_REVERSING_TIME)) {
       // reverse, change direction.
-      setMovement(MAX_MOTORS_STRENGTH, MAX_MOTORS_STRENGTH, GO_RIGHT, GO_FORWARD);
-      delay(50);
-      setMovement(130, MAX_MOTORS_STRENGTH, GO_RIGHT, GO_REVERSE);
+      setMovement(110, MAX_MOTORS_STRENGTH, GO_RIGHT, GO_REVERSE);
       time = millis();
       state = 2;
     } else if (state == 2 && (rearSensorReading < CLOSE_TO_WALL_SENSOR_VALUE || millis() - time > MAX_REVERSING_TIME)) {
       state = 3;
       stopCar();
-      setMovement(130, 150, GO_LEFT, GO_FORWARD);
+      setMovement(100, 100, GO_LEFT, GO_FORWARD);
       time = millis();
     } else if (state == 3 && (frontSensorReading < CLOSE_TO_WALL_SENSOR_VALUE || millis() - time > MAX_FORWARD_TIME_1)) {
-      setMovement(130, 0, GO_STRAIGHT, GO_FORWARD);
+      setMovement(130, 30, GO_RIGHT, GO_FORWARD);
       state = 4;
     } else if (state == 4 && frontSensorReading < CLOSE_TO_WALL_SENSOR_VALUE) {
       stopCar();
       state = 5;
     }
   }
-  Serial.println("The car is parked. Enjoy your day, I hope you enjoyed the ride.");
+  Serial.println("The car is parked. Have a good day, I hope you enjoyed the ride.");
 }

@@ -215,7 +215,7 @@ void loop() {
         break;
       case CALIBRATE:
         digitalWrite(LED, HIGH);
-        calibrateSensor(sideSensorPin);
+        calibrateSensor(frontSensorPin);
         digitalWrite(LED, LOW);
         break;
       case READ_RAW_SIDE_SENSOR:

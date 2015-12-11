@@ -86,19 +86,19 @@ void stopCar() {
   The values GO_* are defined as global variables.
 */
 void setMovement(int leftRight, int forwardReverse) {
-  setMovement(stearingPowerLevel, speedPowerLevel, leftRight, forwardReverse);
+  setMovement(speedPowerLevel, stearingPowerLevel, leftRight, forwardReverse);
 }
 
 /*
   This is the external/public method used to move the car. It differs from the above in that we will call
   this method when we want to control the power applied to each motor as well.
   
+  @param speedPowerLevel: amount of power applied to the rear motor, proportional to the speed of the car
   @param stearingPowerLevel: the amount of power applied to the front motor, proportional to the degree
                               of stearing
-  @param speedPowerLevel: amount of power applied to the rear motor, proportional to the speed of the car
   @param leftRight: determines whether the car will go left, right, or straight
   @param forwardReverse: determines whether the car will go forward, reverse, or stop
 */
-void setMovement(int stearingPowerLevel, int speedPowerLevel, int leftRight, int forwardReverse) {
+void setMovement(int speedPowerLevel, int stearingPowerLevel, int leftRight, int forwardReverse) {
   move(rearMotorPin1, rearMotorPin2, frontMotorPin1, frontMotorPin2, stearingPowerLevel, speedPowerLevel, leftRight, forwardReverse);
 }
