@@ -12,9 +12,14 @@ const char GO_SLOWER = 'n';
 const char TURN_MORE = 'i';
 const char TURN_LESS = 'm';
 const char CALIBRATE = 'c';
-const char READ_RAW_SENSOR = 'r';
-const char READ_CALIBRATED_SENSOR = 'e';
+const char READ_RAW_SIDE_SENSOR = 'r';
+const char READ_CALIBRATED_SIDE_SENSOR = 'e';
+const char READ_RAW_FRONT_SENSOR = '1';
+const char READ_CALIBRATED_FRONT_SENSOR = '2';
+const char READ_RAW_BACK_SENSOR = '3';
+const char READ_CALIBRATED_BACK_SENSOR = '4';
 const char TOGGLE_DEBUG = 't';
+const char TOGGLE_FIND_PARKING = '/';
 
 // Constants for pin mappings
 const int frontSensorPin = P1_3;
@@ -39,21 +44,33 @@ const int GO_FORWARD = 1;
 boolean DEBUG = true;
 const int INPUT_CHAR_DEBUG = 0;
 const int MOTOR_STRENGTH_DEBUG = 1;
-const int CALIBRATED_SENSOR_DEBUG = 2;
-const int RAW_SENSOR_DEBUG = 3;
+const int CALIBRATED_SIDE_SENSOR_DEBUG = 2;
+const int RAW_SIDE_SENSOR_DEBUG = 3;
 const int MIN_MAX_SENSOR_DEBUG = 4;
 const int PARKING_IDENTIFIER_DEBUG = 5;
 const int PARKING_ALGO_DEBUG = 6;
+const int CALIBRATED_FRONT_SENSOR_DEBUG = 7;
+const int RAW_FRONT_SENSOR_DEBUG = 8;
+const int CALIBRATED_BACK_SENSOR_DEBUG = 9;
+const int RAW_BACK_SENSOR_DEBUG = 10;
 
-// Values for the
+// Values for controlling the car
 const int MAX_MOTORS_STRENGTH = 250;
-int bufSize;
-char input;
+int bufSize; // used for bluetooth communication
+char input; // used for the bluetooth messages
 int stearingPowerLevel = 150; // power applied to the front motor
 int speedPowerLevel = 150; // power applied to the rear motor
 int forwardReverse = 1; // 1 => forward, -1 => reverse
 int leftRight = 0; // -1 left, 0 = straight, 1 => right
+int automateFindingParkingSpot = 0; // Should the program search for the parking spot?
 
+/* 
+  The function is used for debugging the program.
+  
+  @param message: what feature we are debugging
+  @param numArgs: used as a C program to control the number of variable arguments
+  @param ...: C sytanx to denote variable number of arguments
+*/
 void debugger(int message, int numArgs, ...) {
   va_list argList;
   va_start(argList, numArgs);
@@ -67,13 +84,29 @@ void debugger(int message, int numArgs, ...) {
       Serial.print("New motor strength: ");
       Serial.println(motorStrength);
     } break;
-    case CALIBRATED_SENSOR_DEBUG:
-      Serial.print("Average value: ");
+    case CALIBRATED_SIDE_SENSOR_DEBUG:
+      Serial.print("Average side sensor value: ");
       Serial.println(getAvgSensorValue(sideSensorPin));
       break;
-    case RAW_SENSOR_DEBUG:
-      Serial.print("Raw sensor value: ");
+    case RAW_SIDE_SENSOR_DEBUG:
+      Serial.print("Raw side sensor value: ");
       Serial.println(analogRead(sideSensorPin));
+      break;
+    case CALIBRATED_FRONT_SENSOR_DEBUG:
+      Serial.print("Average front sensor value: ");
+      Serial.println(getAvgSensorValue(frontSensorPin));
+      break;
+    case RAW_FRONT_SENSOR_DEBUG:
+      Serial.print("Raw front sensor value: ");
+      Serial.println(analogRead(frontSensorPin));
+      break;
+    case CALIBRATED_BACK_SENSOR_DEBUG:
+      Serial.print("Average back sensor value: ");
+      Serial.println(getAvgSensorValue(rearSensorPin));
+      break;
+    case RAW_BACK_SENSOR_DEBUG:
+      Serial.print("Raw back sensor value: ");
+      Serial.println(analogRead(rearSensorPin));
       break;
     case MIN_MAX_SENSOR_DEBUG: {
       int sensorMin = va_arg(argList, int);
@@ -105,6 +138,7 @@ void debugger(int message, int numArgs, ...) {
   }
 }
 
+// Just used to set up the I/O pins & intializing them all to LOW
 void setup() {
   Serial.begin(9600);
   pinMode(frontSensorPin, INPUT);
@@ -180,14 +214,29 @@ void loop() {
         calibrateSensor(sideSensorPin);
         digitalWrite(LED, LOW);
         break;
-      case READ_RAW_SENSOR:
-        if (DEBUG) { debugger(RAW_SENSOR_DEBUG, 0); }
+      case READ_RAW_SIDE_SENSOR:
+        if (DEBUG) { debugger(RAW_SIDE_SENSOR_DEBUG, 0); }
         break;
-      case READ_CALIBRATED_SENSOR:
-        if (DEBUG) { debugger(CALIBRATED_SENSOR_DEBUG, 0); }
+      case READ_CALIBRATED_SIDE_SENSOR:
+        if (DEBUG) { debugger(CALIBRATED_SIDE_SENSOR_DEBUG, 0); }
+        break;
+      case READ_RAW_FRONT_SENSOR:
+        if (DEBUG) { debugger(RAW_FRONT_SENSOR_DEBUG, 0); }
+        break;
+      case READ_CALIBRATED_FRONT_SENSOR:
+        if (DEBUG) { debugger(CALIBRATED_FRONT_SENSOR_DEBUG, 0); }
+        break;
+      case READ_RAW_BACK_SENSOR:
+        if (DEBUG) { debugger(RAW_BACK_SENSOR_DEBUG, 0); }
+        break;
+      case READ_CALIBRATED_BACK_SENSOR:
+        if (DEBUG) { debugger(CALIBRATED_BACK_SENSOR_DEBUG, 0); }
         break;
       case TOGGLE_DEBUG:
         DEBUG = !DEBUG;
+        break;
+      case TOGGLE_FIND_PARKING:
+        automateFindingParkingSpot = !automateFindingParkingSpot;
         break;
     }
   }

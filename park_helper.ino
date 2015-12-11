@@ -2,7 +2,7 @@
 // Constants for finding parking spot
 const int MIN_DEPTH_DELTA = 150;
 const int MIN_TIME_DELTA = 1000;
-const int MAX_PARKING_SEARCH_TIME = 2000;
+const int MAX_PARKING_SEARCH_TIME = 2500;
 
 // Constants for backing up:
 const int HALF_PARKING_SPOT_SENSOR_VALUE = MIN_DEPTH_DELTA;
@@ -31,38 +31,47 @@ const int MAX_REVERSING_TIME = MIN_TIME_DELTA/2;
 */
 
 /*
- @arg sideSensorPin, type: int, pin number for side sensor
- @arg frontSensorPin, type: int, pin number for front sensor
+  Private/internal method used to determine if there is a parking spot nearby. We stop on one of 3 conditions:
+    1. We have found a parking spot (and so state == 4)
+    2. We have run out of time to find a parking spot. It may be recalled afterwards
+    3. There is an obstable in front of us.
+
+  @param sideSensorPin: pin number for side sensor
+  @param frontSensorPin: pin number for front sensor
  
- @return, type: int
-   0: fail to find parking spot
-   1: parking spot found
+  @return:
+    0: fail to find parking spot (cases 2 & 3 above)
+    1: parking spot found (case 1)
 */
 int findParkingSpot(int sideSensorPin, int frontSensorPin) {
   int state = 0;
   int pPreviousSensorValue = getAvgSensorValue(sideSensorPin);
   int previousSensorValue = getAvgSensorValue(sideSensorPin);
+  int frontSensorValue = getAvgSensorValue(frontSensorPin);
   int startTime, currentTime;
+  
+  setMovement(0, 130, 0, 1);
   unsigned long functionCallTime = millis();
   
-  while (state != 4 && millis() - functionCallTime < MAX_PARKING_SEARCH_TIME) {
+  while (state != 4 && millis() - functionCallTime < MAX_PARKING_SEARCH_TIME && frontSensorValue > CLOSE_TO_WALL_SENSOR_VALUE) {
     
-    int currentSensorValue = getAvgSensorValue(sideSensorPin);
+    int sideSensorValue = getAvgSensorValue(sideSensorPin);
+    frontSensorValue = getAvgSensorValue(frontSensorPin);
 
-    if (DEBUG) { debugger(PARKING_IDENTIFIER_DEBUG, 2, state, currentSensorValue); }
+    if (DEBUG) { debugger(PARKING_IDENTIFIER_DEBUG, 2, state, sideSensorValue); }
     
     if (state > 0) { currentTime = millis(); }
     
-    if (state == 0 && previousSensorValue - currentSensorValue >= MIN_DEPTH_DELTA) {
+    if (state == 0 && previousSensorValue - sideSensorValue >= MIN_DEPTH_DELTA) {
       state = 1;
       startTime = millis();
-    } else if (state == 1 && pPreviousSensorValue - currentSensorValue >= MIN_DEPTH_DELTA) {
+    } else if (state == 1 && pPreviousSensorValue - sideSensorValue >= MIN_DEPTH_DELTA) {
       state = 2;
-    } else if (state == 1 && pPreviousSensorValue - currentSensorValue < MIN_DEPTH_DELTA) {
+    } else if (state == 1 && pPreviousSensorValue - sideSensorValue < MIN_DEPTH_DELTA) {
       state = 0;
-    } else if (state == 2 && currentSensorValue - previousSensorValue >= MIN_DEPTH_DELTA) {
+    } else if (state == 2 && sideSensorValue - previousSensorValue >= MIN_DEPTH_DELTA) {
       state = 3;
-    } else if (state == 3 && currentSensorValue - pPreviousSensorValue < MIN_DEPTH_DELTA) {
+    } else if (state == 3 && sideSensorValue - pPreviousSensorValue < MIN_DEPTH_DELTA) {
       state = 2;
     } else if (state == 3 && currentTime - startTime >= MIN_TIME_DELTA) {
       state = 4;
@@ -71,7 +80,7 @@ int findParkingSpot(int sideSensorPin, int frontSensorPin) {
     }
     
     pPreviousSensorValue = previousSensorValue;
-    previousSensorValue = currentSensorValue;
+    previousSensorValue = sideSensorValue;
     
     delay(10);
   }
@@ -80,12 +89,17 @@ int findParkingSpot(int sideSensorPin, int frontSensorPin) {
 }
 
 void park(int sideSensorPin, int frontSensorPin, int rearSensorPin) {
-  setMovement(0, 130, 0, 1);
-  int parkingSpot = findParkingSpot(sideSensorPin, frontSensorPin);
   stopCar();
+  
+  int parkingSpot = 1; // Assume we stopped the car next to a parking spot.
+  if (automateFindingParkingSpot) { parkingSpot = findParkingSpot(sideSensorPin, frontSensorPin); }
+  
+  stopCar();
+  
   if (parkingSpot == 1) { // Do some magic. Park.
-    // we found a parking spot, we need to start parking
-    // If we haven't found a parking spot in the allotted time, just stop and don't do anything.
+    if (automateFindingParkingSpot) { Serial.print("Parking spot found. "); }
+    Serial.println("Beginning to park.");
+
     unsigned long time = millis();
     int state = 0;
     while (state != 4) {
@@ -109,5 +123,5 @@ void park(int sideSensorPin, int frontSensorPin, int rearSensorPin) {
         stopCar();
       }
     }
-  }
+  } else {} // Not sure what to do if we failed to find a parking spot
 }
