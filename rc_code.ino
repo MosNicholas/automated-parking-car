@@ -1,13 +1,16 @@
 
 // Constants for bluetooth controls
 const char LEFT = 'a';
-const char REVERSE = 's';
+const char STRAIGHT = 'q';
 const char RIGHT = 'd';
+const char REVERSE = 's';
 const char FORWARD = 'w';
-const char PARK = 'p';
 const char STOP = 'x';
-const char UP_MOTOR = 'u';
-const char DOWN_MOTOR = 'n';
+const char PARK = 'p';
+const char GO_FASTER = 'u';
+const char GO_SLOWER = 'n';
+const char TURN_MORE = 'i';
+const char TURN_LESS = 'm';
 const char CALIBRATE = 'c';
 const char READ_RAW_SENSOR = 'r';
 const char READ_CALIBRATED_SENSOR = 'e';
@@ -32,7 +35,7 @@ const int GO_REVERSE = -1;
 const int GO_STOP = 0;
 const int GO_FORWARD = 1;
 
-// Constants for DEBUGging:
+// Constants for debugging:
 boolean DEBUG = true;
 const int INPUT_CHAR_DEBUG = 0;
 const int MOTOR_STRENGTH_DEBUG = 1;
@@ -40,12 +43,14 @@ const int CALIBRATED_SENSOR_DEBUG = 2;
 const int RAW_SENSOR_DEBUG = 3;
 const int MIN_MAX_SENSOR_DEBUG = 4;
 const int PARKING_IDENTIFIER_DEBUG = 5;
+const int PARKING_ALGO_DEBUG = 6;
 
 // Values for the
-const int MAX_MOTOR_STRENGTH = 250;
+const int MAX_MOTORS_STRENGTH = 250;
 int bufSize;
 char input;
-int motorStrength = 150;
+int stearingPowerLevel = 150; // power applied to the front motor
+int speedPowerLevel = 150; // power applied to the rear motor
 int forwardReverse = 1; // 1 => forward, -1 => reverse
 int leftRight = 0; // -1 left, 0 = straight, 1 => right
 
@@ -57,10 +62,11 @@ void debugger(int message, int numArgs, ...) {
       Serial.print("Input char: ");
       Serial.println(input);
       break;
-    case MOTOR_STRENGTH_DEBUG:
+    case MOTOR_STRENGTH_DEBUG: {
+      int motorStrength = va_arg(argList, int);
       Serial.print("New motor strength: ");
       Serial.println(motorStrength);
-      break;
+    } break;
     case CALIBRATED_SENSOR_DEBUG:
       Serial.print("Average value: ");
       Serial.println(getAvgSensorValue(sideSensorPin));
@@ -85,7 +91,18 @@ void debugger(int message, int numArgs, ...) {
       Serial.print(", voltage: ");
       Serial.println(currentSensorValue);
     } break;
-  } 
+    case PARKING_ALGO_DEBUG: {
+      int state = va_arg(argList, int);
+      int rearSensorValue = va_arg(argList, int);
+      int frontSensorValue = va_arg(argList, int);
+      Serial.print("state: ");
+      Serial.print(state);
+      Serial.print(", rear voltage: ");
+      Serial.print(rearSensorValue);
+      Serial.print(", front voltage: ");
+      Serial.println(frontSensorValue);
+    }
+  }
 }
 
 void setup() {
@@ -114,46 +131,64 @@ void loop() {
     
     if (DEBUG) { debugger(INPUT_CHAR_DEBUG, 0); }
     
-    if (input == LEFT) {
-      setMovement(motorStrength, -1, forwardReverse);
-      leftRight = -1;
-    } else if (input == REVERSE) {
-      setMovement(motorStrength, leftRight, -1);
-      forwardReverse = -1;
-    } else if (input == RIGHT) {
-      setMovement(motorStrength, 1, forwardReverse);
-      leftRight = 1;
-    } else if (input == FORWARD) {
-      setMovement(motorStrength, leftRight, 1);
-      forwardReverse = 1;
-    } else if (input == PARK) {
-      park(sideSensorPin, frontSensorPin, rearSensorPin);
-      forwardReverse = 1;
-      leftRight = 0;
-    } else if (input == STOP) {
-      setMovement(0, 0, 0);
-      forwardReverse = 1;
-      leftRight = 0;
-    } else if (input == UP_MOTOR) {
-      motorStrength = min(motorStrength + 50, MAX_MOTOR_STRENGTH);
-      if (DEBUG) { debugger(MOTOR_STRENGTH_DEBUG, 0); }
-    } else if (input == DOWN_MOTOR) {
-      motorStrength = motorStrength - 50;
-      if (DEBUG) { debugger(MOTOR_STRENGTH_DEBUG, 0); }
-    } else if (input == CALIBRATE) {
-      digitalWrite(LED, HIGH);
-      calibrateSensor(sideSensorPin);
-      digitalWrite(LED, LOW);
-    } else if (DEBUG && input == READ_RAW_SENSOR) {
-      debugger(RAW_SENSOR_DEBUG, 0);
-    } else if (DEBUG && input == READ_CALIBRATED_SENSOR) {
-      debugger(CALIBRATED_SENSOR_DEBUG, 0);
-    } else if (input == TOGGLE_DEBUG) {
-      DEBUG = !DEBUG;
-    } else {}
+    switch (input) {
+      case LEFT:
+        setMovement(GO_LEFT, forwardReverse);
+        leftRight = GO_LEFT;
+        break;
+      case STRAIGHT:
+        setMovement(GO_STRAIGHT, forwardReverse);
+        leftRight = GO_STRAIGHT;
+        break;
+      case RIGHT:
+        setMovement(GO_RIGHT, forwardReverse);
+        leftRight = GO_RIGHT;
+        break;
+      case REVERSE:
+        setMovement(leftRight, GO_REVERSE);
+        forwardReverse = GO_REVERSE;
+        break;
+      case FORWARD:
+        setMovement(leftRight, GO_FORWARD);
+        forwardReverse = GO_FORWARD;
+        break;
+      case PARK:
+        park(sideSensorPin, frontSensorPin, rearSensorPin);
+      case STOP:
+        stopCar();
+        forwardReverse = GO_FORWARD;
+        leftRight = GO_STRAIGHT;
+        break;
+      case GO_FASTER:
+        speedPowerLevel = min(speedPowerLevel + 50, MAX_MOTORS_STRENGTH);
+        if (DEBUG) { debugger(MOTOR_STRENGTH_DEBUG, 1, speedPowerLevel); }
+        break;
+      case GO_SLOWER:
+        speedPowerLevel = speedPowerLevel - 50;
+        if (DEBUG) { debugger(MOTOR_STRENGTH_DEBUG, 1, speedPowerLevel); }
+        break;
+      case TURN_MORE:
+        stearingPowerLevel = min(stearingPowerLevel + 50, MAX_MOTORS_STRENGTH);
+        if (DEBUG) { debugger(MOTOR_STRENGTH_DEBUG, 1, stearingPowerLevel); }
+        break;
+      case TURN_LESS:
+        stearingPowerLevel = stearingPowerLevel - 50;
+        if (DEBUG) { debugger(MOTOR_STRENGTH_DEBUG, 1, stearingPowerLevel); }
+        break;
+      case CALIBRATE:
+        digitalWrite(LED, HIGH);
+        calibrateSensor(sideSensorPin);
+        digitalWrite(LED, LOW);
+        break;
+      case READ_RAW_SENSOR:
+        if (DEBUG) { debugger(RAW_SENSOR_DEBUG, 0); }
+        break;
+      case READ_CALIBRATED_SENSOR:
+        if (DEBUG) { debugger(CALIBRATED_SENSOR_DEBUG, 0); }
+        break;
+      case TOGGLE_DEBUG:
+        DEBUG = !DEBUG;
+        break;
+    }
   }
-}
-
-void setMovement(int motorStrength, int leftRight, int forwardReverse) {
-  move(rearMotorPin1, rearMotorPin2, frontMotorPin1, frontMotorPin2, motorStrength, leftRight, forwardReverse);
 }

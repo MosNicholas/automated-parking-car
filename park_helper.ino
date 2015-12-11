@@ -2,7 +2,7 @@
 // Constants for finding parking spot
 const int MIN_DEPTH_DELTA = 150;
 const int MIN_TIME_DELTA = 1000;
-const int MAX_PARKING_SEARCH_TIME = 5000;
+const int MAX_PARKING_SEARCH_TIME = 2000;
 
 // Constants for backing up:
 const int HALF_PARKING_SPOT_SENSOR_VALUE = MIN_DEPTH_DELTA;
@@ -53,16 +53,16 @@ int findParkingSpot(int sideSensorPin, int frontSensorPin) {
     
     if (state > 0) { currentTime = millis(); }
     
-    if (state == 0 && currentSensorValue - previousSensorValue >= MIN_DEPTH_DELTA) {
+    if (state == 0 && previousSensorValue - currentSensorValue >= MIN_DEPTH_DELTA) {
       state = 1;
       startTime = millis();
-    } else if (state == 1 && currentSensorValue - pPreviousSensorValue >= MIN_DEPTH_DELTA) {
+    } else if (state == 1 && pPreviousSensorValue - currentSensorValue >= MIN_DEPTH_DELTA) {
       state = 2;
-    } else if (state == 1 && currentSensorValue - pPreviousSensorValue < MIN_DEPTH_DELTA) {
+    } else if (state == 1 && pPreviousSensorValue - currentSensorValue < MIN_DEPTH_DELTA) {
       state = 0;
-    } else if (state == 2 && currentSensorValue - previousSensorValue <= -MIN_DEPTH_DELTA) {
+    } else if (state == 2 && currentSensorValue - previousSensorValue >= MIN_DEPTH_DELTA) {
       state = 3;
-    } else if (state == 3 && currentSensorValue - pPreviousSensorValue > -MIN_DEPTH_DELTA) {
+    } else if (state == 3 && currentSensorValue - pPreviousSensorValue < MIN_DEPTH_DELTA) {
       state = 2;
     } else if (state == 3 && currentTime - startTime >= MIN_TIME_DELTA) {
       state = 4;
@@ -73,28 +73,41 @@ int findParkingSpot(int sideSensorPin, int frontSensorPin) {
     pPreviousSensorValue = previousSensorValue;
     previousSensorValue = currentSensorValue;
     
-    delay(30);
+    delay(10);
   }
   
   return (state == 4);
 }
 
 void park(int sideSensorPin, int frontSensorPin, int rearSensorPin) {
-  setMovement(130, 0, 1);
+  setMovement(0, 130, 0, 1);
   int parkingSpot = findParkingSpot(sideSensorPin, frontSensorPin);
-  setMovement(0, 0, 0);
+  stopCar();
   if (parkingSpot == 1) { // Do some magic. Park.
     // we found a parking spot, we need to start parking
     // If we haven't found a parking spot in the allotted time, just stop and don't do anything.
-    setMovement(100, -1, -1); // start reversing back, left
-    unsigned long startBacking = millis();
-    while (getAvgSensorValue(rearSensorPin) >= HALF_PARKING_SPOT_SENSOR_VALUE 
-             && millis() - startBacking > MAX_REVERSING_TIME) {} // keep reversing until one of these is false
-    setMovement(100, 1, -1); // reverse, change direction.
-    while (getAvgSensorValue(rearSensorPin) >= CLOSE_TO_WALL_SENSOR_VALUE 
-             && millis() - startBacking > MAX_REVERSING_TIME) {} // keep reversing until one of these is false
-    setMovement(100, -1, 1); // forward.
+    unsigned long time = millis();
+    int state = 0;
+    while (state != 4) {
+      int rearSensorReading = getAvgSensorValue(rearSensorPin);
+      int frontSensorReading = getAvgSensorValue(frontSensorPin);
+      
+      if (DEBUG) { debugger(PARKING_ALGO_DEBUG, 3, state, rearSensorReading, frontSensorReading); }
+      
+      if (state == 0) {
+        // First step: reverse back, left
+        setMovement(MAX_MOTORS_STRENGTH, MAX_MOTORS_STRENGTH, GO_LEFT, GO_REVERSE);
+        state = 1;
+      } else if (state == 1 && (rearSensorReading < HALF_PARKING_SPOT_SENSOR_VALUE || millis() - time > MAX_REVERSING_TIME)) {
+         // reverse, change direction.
+        setMovement(MAX_MOTORS_STRENGTH, MAX_MOTORS_STRENGTH, GO_RIGHT, GO_REVERSE);
+        time = millis();
+        state = 2;
+      } else if (state == 2 && (rearSensorReading < CLOSE_TO_WALL_SENSOR_VALUE || millis() - time > MAX_REVERSING_TIME)) {
+        state = 3;
+      } else if (state == 3) {
+        stopCar();
+      }
+    }
   }
 }
-
-

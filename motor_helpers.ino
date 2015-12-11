@@ -31,22 +31,42 @@ void straight(int front1, int front2) {
   analogWrite(front2, 0);
 }
 
-void move(int rear1, int rear2, int front1, int front2, int powerLevel, int leftRight, int forwardReverse) {
+void move(int rear1, int rear2, int front1, int front2, int stearingPowerLevel, int speedPowerLevel, int leftRight, int forwardReverse) {
   // left = -1, straight = 0, right = 1
   // reverse = -1, stop = 0, forward = 1
-  if (leftRight == GO_LEFT) {
-    left(front1, front2, powerLevel);
-  } else if (leftRight == GO_STRAIGHT) {
-    straight(front1, front2);
-  } else if (leftRight == GO_RIGHT) {
-    right(front1, front2, powerLevel); 
-  } else {}
+  switch (leftRight) {
+    case GO_LEFT:
+      left(front1, front2, stearingPowerLevel);
+      break;
+    case GO_STRAIGHT:
+      straight(front1, front2);
+      break;
+    case GO_RIGHT:
+      right(front1, front2, stearingPowerLevel);
+      break;
+  }
   
-  if (forwardReverse == GO_REVERSE) {
-    reverse(rear1, rear2, powerLevel);
-  } else if (forwardReverse == GO_STOP) {
-    halt(rear1, rear2, front1, front2);
-  } else if (forwardReverse == GO_FORWARD) {
-    forward(rear1, rear2, powerLevel);
-  } else {}
+  switch (forwardReverse) {
+    case GO_REVERSE:
+      reverse(rear1, rear2, speedPowerLevel);
+      break;
+    case GO_STOP:
+      halt(rear1, rear2, front1, front2);
+      break;
+    case GO_FORWARD:
+      forward(rear1, rear2, speedPowerLevel);
+      break;
+  }
+}
+
+void stopCar() {
+  setMovement(0, 0);
+}
+
+void setMovement(int leftRight, int forwardReverse) {
+  setMovement(stearingPowerLevel, speedPowerLevel, leftRight, forwardReverse);
+}
+
+void setMovement(int stearingPowerLevel, int speedPowerLevel, int leftRight, int forwardReverse) {
+  move(rearMotorPin1, rearMotorPin2, frontMotorPin1, frontMotorPin2, stearingPowerLevel, speedPowerLevel, leftRight, forwardReverse);
 }
