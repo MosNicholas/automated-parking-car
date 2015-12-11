@@ -7,7 +7,8 @@ const int MAX_PARKING_SEARCH_TIME = 2500;
 // Constants for backing up:
 const int HALF_PARKING_SPOT_SENSOR_VALUE = MIN_DEPTH_DELTA;
 const int CLOSE_TO_WALL_SENSOR_VALUE = 90;
-const int MAX_REVERSING_TIME = MIN_TIME_DELTA/2;
+const int MAX_REVERSING_TIME = 1600;
+const int MAX_FORWARD_TIME_1 = 1400;
 
 /*
  Since we are mapping sensor values to 0-1023, we can use an absolute value
@@ -91,37 +92,48 @@ int findParkingSpot(int sideSensorPin, int frontSensorPin) {
 void park(int sideSensorPin, int frontSensorPin, int rearSensorPin) {
   stopCar();
   
-  int parkingSpot = 1; // Assume we stopped the car next to a parking spot.
-  if (automateFindingParkingSpot) { parkingSpot = findParkingSpot(sideSensorPin, frontSensorPin); }
+  int parkingSpotFound = 1; // Assume we stopped the car next to a parking spot.
+  if (automateFindingParkingSpot) { parkingSpotFound = findParkingSpot(sideSensorPin, frontSensorPin); }
   
   stopCar();
   
-  if (parkingSpot == 1) { // Do some magic. Park.
-    if (automateFindingParkingSpot) { Serial.print("Parking spot found. "); }
-    Serial.println("Beginning to park.");
+  if (parkingSpotFound != 1) { return; }
+  
+  // We have a parking spot. Do some magic. Park.
+  if (automateFindingParkingSpot) { Serial.print("Parking spot found. "); }
+  Serial.println("Beginning to park.");
 
-    unsigned long time = millis();
-    int state = 0;
-    while (state != 4) {
-      int rearSensorReading = getAvgSensorValue(rearSensorPin);
-      int frontSensorReading = getAvgSensorValue(frontSensorPin);
-      
-      if (DEBUG) { debugger(PARKING_ALGO_DEBUG, 3, state, rearSensorReading, frontSensorReading); }
-      
-      if (state == 0) {
-        // First step: reverse back, left
-        setMovement(MAX_MOTORS_STRENGTH, MAX_MOTORS_STRENGTH, GO_LEFT, GO_REVERSE);
-        state = 1;
-      } else if (state == 1 && (rearSensorReading < HALF_PARKING_SPOT_SENSOR_VALUE || millis() - time > MAX_REVERSING_TIME)) {
-         // reverse, change direction.
-        setMovement(MAX_MOTORS_STRENGTH, MAX_MOTORS_STRENGTH, GO_RIGHT, GO_REVERSE);
-        time = millis();
-        state = 2;
-      } else if (state == 2 && (rearSensorReading < CLOSE_TO_WALL_SENSOR_VALUE || millis() - time > MAX_REVERSING_TIME)) {
-        state = 3;
-      } else if (state == 3) {
-        stopCar();
-      }
+  unsigned long time = millis();
+  int state = 0;
+  while (state < 5) {
+    int rearSensorReading = getAvgSensorValue(rearSensorPin);
+    int frontSensorReading = getAvgSensorValue(frontSensorPin);
+    
+    if (DEBUG) { debugger(PARKING_ALGO_DEBUG, 3, state, rearSensorReading, frontSensorReading); }
+    
+    if (state == 0) {
+      // First step: reverse back, left
+      setMovement(MAX_MOTORS_STRENGTH, MAX_MOTORS_STRENGTH, GO_LEFT, GO_REVERSE);
+      state = 1;
+    } else if (state == 1 && (rearSensorReading < HALF_PARKING_SPOT_SENSOR_VALUE || millis() - time > MAX_REVERSING_TIME)) {
+      // reverse, change direction.
+      setMovement(MAX_MOTORS_STRENGTH, MAX_MOTORS_STRENGTH, GO_RIGHT, GO_FORWARD);
+      delay(50);
+      setMovement(130, MAX_MOTORS_STRENGTH, GO_RIGHT, GO_REVERSE);
+      time = millis();
+      state = 2;
+    } else if (state == 2 && (rearSensorReading < CLOSE_TO_WALL_SENSOR_VALUE || millis() - time > MAX_REVERSING_TIME)) {
+      state = 3;
+      stopCar();
+      setMovement(130, 150, GO_LEFT, GO_FORWARD);
+      time = millis();
+    } else if (state == 3 && (frontSensorReading < CLOSE_TO_WALL_SENSOR_VALUE || millis() - time > MAX_FORWARD_TIME_1)) {
+      setMovement(130, 0, GO_STRAIGHT, GO_FORWARD);
+      state = 4;
+    } else if (state == 4 && frontSensorReading < CLOSE_TO_WALL_SENSOR_VALUE) {
+      stopCar();
+      state = 5;
     }
-  } else {} // Not sure what to do if we failed to find a parking spot
+  }
+  Serial.println("The car is parked. Enjoy your day, I hope you enjoyed the ride.");
 }

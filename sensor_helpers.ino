@@ -4,7 +4,7 @@ const int NUM_READINGS = 50;
 const int NUM_MILLISECONDS = 5000;
 
 // private/internal variables used to calibrate the sensor
-int sensorMin, sensorMax;
+int sensorMin = 1, sensorMax = 28;
 
 /* 
   Public method to calibrate the sensors.
@@ -12,8 +12,7 @@ int sensorMin, sensorMax;
   @param sensorPin: the pin for the input sensor
 */
 void calibrateSensor(int sensorPin) {
-  // to be called in the setup function, 
-  //finds the min and max values of the sensor readings
+  if (DEBUG) { debugger(CALIBRATING_DEBUG, 0); }
   int _sensorMin = 1023, _sensorMax = 0;
   unsigned long startTime = millis();
   while (millis() - startTime < NUM_MILLISECONDS) {

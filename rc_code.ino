@@ -53,6 +53,7 @@ const int CALIBRATED_FRONT_SENSOR_DEBUG = 7;
 const int RAW_FRONT_SENSOR_DEBUG = 8;
 const int CALIBRATED_BACK_SENSOR_DEBUG = 9;
 const int RAW_BACK_SENSOR_DEBUG = 10;
+const int CALIBRATING_DEBUG = 11;
 
 // Values for controlling the car
 const int MAX_MOTORS_STRENGTH = 250;
@@ -134,7 +135,10 @@ void debugger(int message, int numArgs, ...) {
       Serial.print(rearSensorValue);
       Serial.print(", front voltage: ");
       Serial.println(frontSensorValue);
-    }
+    } break;
+    case CALIBRATING_DEBUG:
+      Serial.println("Calibrating the sensor");
+      break;
   }
 }
 
